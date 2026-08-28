@@ -1,0 +1,385 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MiniAuth UserService API",
+    "description": "RESTful API for managing users, roles, permissions, and RBAC assignments in the MiniAuth platform.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "MiniAuth"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081",
+      "description": "Local Development Server"
+    }
+  ],
+  "tags": [
+    { "name": "Users", "description": "User creation, queries, and role assignments" },
+    { "name": "Roles", "description": "Role creation, listing, and permission assignments" },
+    { "name": "Permissions", "description": "Permission creation and listing" },
+    { "name": "Health", "description": "Service health probes" }
+  ],
+  "paths": {
+    "/api/v1/users": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create a new user",
+        "description": "Creates a new user with a bcrypt-hashed password.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponseWrapper"
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Email already exists" }
+        }
+      },
+      "get": {
+        "tags": ["Users"],
+        "summary": "List all users",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user details",
+        "description": "Returns full user profile along with assigned roles and resolved permissions.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Full user details with roles and permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDetailResponseWrapper"
+                }
+              }
+            }
+          },
+          "404": { "description": "User not found" }
+        }
+      }
+    },
+    "/api/v1/users/{id}/roles": {
+      "post": {
+        "tags": ["Users"],
+        "summary": "Assign a role to a user",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Role assigned successfully" },
+          "404": { "description": "User or Role not found" }
+        }
+      }
+    },
+    "/api/v1/users/{id}/roles/{roleId}": {
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Remove a role from a user",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "roleId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Role removed successfully" },
+          "400": { "description": "Role was not assigned to user" }
+        }
+      }
+    },
+    "/api/v1/roles": {
+      "post": {
+        "tags": ["Roles"],
+        "summary": "Create a new role",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Role created" },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Role name already exists" }
+        }
+      },
+      "get": {
+        "tags": ["Roles"],
+        "summary": "List all roles with their permissions",
+        "responses": {
+          "200": { "description": "List of roles" }
+        }
+      }
+    },
+    "/api/v1/roles/{id}": {
+      "get": {
+        "tags": ["Roles"],
+        "summary": "Get role by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Role found" },
+          "404": { "description": "Role not found" }
+        }
+      }
+    },
+    "/api/v1/roles/{id}/permissions": {
+      "post": {
+        "tags": ["Roles"],
+        "summary": "Assign a permission to a role",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignPermissionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Permission assigned to role" },
+          "404": { "description": "Role or Permission not found" }
+        }
+      }
+    },
+    "/api/v1/roles/{id}/permissions/{permissionId}": {
+      "delete": {
+        "tags": ["Roles"],
+        "summary": "Remove a permission from a role",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "permissionId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Permission removed from role" }
+        }
+      }
+    },
+    "/api/v1/permissions": {
+      "post": {
+        "tags": ["Permissions"],
+        "summary": "Create a new permission",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePermissionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Permission created" },
+          "409": { "description": "Permission already exists" }
+        }
+      },
+      "get": {
+        "tags": ["Permissions"],
+        "summary": "List all permissions",
+        "responses": {
+          "200": { "description": "List of permissions" }
+        }
+      }
+    },
+    "/api/v1/permissions/{id}": {
+      "get": {
+        "tags": ["Permissions"],
+        "summary": "Get permission by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": { "description": "Permission found" },
+          "404": { "description": "Permission not found" }
+        }
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Liveness probe",
+        "responses": {
+          "200": { "description": "Service is healthy" }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Readiness probe",
+        "responses": {
+          "200": { "description": "Service is ready" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateUserRequest": {
+        "type": "object",
+        "required": ["name", "email", "password"],
+        "properties": {
+          "name": { "type": "string", "example": "Alice Smith" },
+          "email": { "type": "string", "format": "email", "example": "alice@example.com" },
+          "password": { "type": "string", "format": "password", "minLength": 8, "example": "SecurePass123!" }
+        }
+      },
+      "UserResponseWrapper": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string", "example": "user created successfully" },
+          "data": { "$ref": "#/components/schemas/UserResponse" }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "email": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UserListResponseWrapper": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserResponse" }
+          }
+        }
+      },
+      "UserDetailResponseWrapper": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "$ref": "#/components/schemas/UserDetailResponse" }
+        }
+      },
+      "UserDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "Alice Smith" },
+          "email": { "type": "string", "example": "alice@example.com" },
+          "roles": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RoleSummary" }
+          },
+          "permissions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["read:users", "write:users", "admin:all"]
+          },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RoleSummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "admin" },
+          "permissions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Permission" }
+          }
+        }
+      },
+      "CreateRoleRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "example": "admin" }
+        }
+      },
+      "AssignRoleRequest": {
+        "type": "object",
+        "required": ["role_id"],
+        "properties": {
+          "role_id": { "type": "string", "format": "uuid", "example": "c56a4180-65aa-42ec-a945-5fd21dec0538" }
+        }
+      },
+      "CreatePermissionRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "example": "read:users" }
+        }
+      },
+      "AssignPermissionRequest": {
+        "type": "object",
+        "required": ["permission_id"],
+        "properties": {
+          "permission_id": { "type": "string", "format": "uuid", "example": "a12b34cd-56ef-78gh-90ij-1234567890ab" }
+        }
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "example": "read:users" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}
