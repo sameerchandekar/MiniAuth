@@ -1,6 +1,7 @@
 package server
 
 import (
+	"database/sql"
 	"log/slog"
 	"net/http"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/redis/go-redis/v9"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/config"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/handler"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/repository"
@@ -15,7 +17,7 @@ import (
 )
 
 // SetupRouter initializes the chi router with middlewares, repositories, services, and route handlers.
-func SetupRouter(cfg *config.Config, logger *slog.Logger) http.Handler {
+func SetupRouter(cfg *config.Config, db *sql.DB, rdb *redis.Client, logger *slog.Logger) http.Handler {
 	r := chi.NewRouter()
 
 	// Base middleware stack
@@ -36,8 +38,19 @@ func SetupRouter(cfg *config.Config, logger *slog.Logger) http.Handler {
 	}))
 
 	// Dependency Injection: Repositories & Services
-	clientRepo := repository.NewMemoryClientRepository()
-	authCodeRepo := repository.NewMemoryAuthCodeRepository()
+	var clientRepo repository.ClientRepository
+	if db != nil {
+		clientRepo = repository.NewPostgresClientRepository(db)
+	} else {
+		clientRepo = repository.NewMemoryClientRepository()
+	}
+
+	var authCodeRepo repository.AuthCodeRepository
+	if rdb != nil {
+		authCodeRepo = repository.NewRedisAuthCodeRepository(rdb)
+	} else {
+		authCodeRepo = repository.NewMemoryAuthCodeRepository()
+	}
 	oauthService := service.NewOAuthService(clientRepo, authCodeRepo)
 
 	// Handlers

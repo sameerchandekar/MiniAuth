@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // Config holds all UserService configuration settings.
@@ -20,7 +22,8 @@ type Config struct {
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
 
-	DB DatabaseConfig
+	DB    DatabaseConfig
+	Redis RedisConfig
 }
 
 // DatabaseConfig holds PostgreSQL connection settings.
@@ -50,6 +53,47 @@ func (d *DatabaseConfig) DSN() string {
 		encodedUser, encodedPassword, d.Host, d.Port, d.DBName, d.SSLMode)
 }
 
+// RedisConfig holds Redis connection settings.
+type RedisConfig struct {
+	URL      string // Full redis:// or rediss:// connection string (e.g. Upstash, Redis Cloud)
+	Addr     string // host:port address (e.g. "localhost:6379" or "fulgent-jump-maroon-88822.db.redis.io:14418")
+	Username string
+	Password string
+	DB       int
+}
+
+// ClientOptions creates *redis.Options configured according to the RedisConfig.
+func (r *RedisConfig) ClientOptions() (*redis.Options, error) {
+	if r.URL != "" {
+		opts, err := redis.ParseURL(r.URL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid REDIS_URL: %w", err)
+		}
+		if r.Username != "" && opts.Username == "" {
+			opts.Username = r.Username
+		}
+		if r.Password != "" && opts.Password == "" {
+			opts.Password = r.Password
+		}
+		if r.DB != 0 && opts.DB == 0 {
+			opts.DB = r.DB
+		}
+		return opts, nil
+	}
+
+	addr := r.Addr
+	if addr == "" {
+		addr = "localhost:6379"
+	}
+
+	return &redis.Options{
+		Addr:     addr,
+		Username: r.Username,
+		Password: r.Password,
+		DB:       r.DB,
+	}, nil
+}
+
 // Load loads configuration from environment variables and .env file.
 func Load() *Config {
 	loadDotEnv(".env")
@@ -58,6 +102,8 @@ func Load() *Config {
 	loadDotEnv("../.env")
 
 	dbURL := getEnv("DATABASE_URL", getEnv("DB_URL", ""))
+	redisURL := getEnv("REDIS_URL", "")
+	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
 
 	return &Config{
 		Host:         getEnv("HOST", "0.0.0.0"),
@@ -79,6 +125,14 @@ func Load() *Config {
 			MaxOpenConns:    getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
 			MaxIdleConns:    getEnvAsInt("DB_MAX_IDLE_CONNS", 25),
 			ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
+		},
+
+		Redis: RedisConfig{
+			URL:      redisURL,
+			Addr:     redisAddr,
+			Username: getEnv("REDIS_USERNAME", getEnv("REDIS_USER", "")),
+			Password: getEnv("REDIS_PASSWORD", ""),
+			DB:       getEnvAsInt("REDIS_DB", 0),
 		},
 	}
 }

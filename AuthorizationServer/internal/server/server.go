@@ -2,11 +2,13 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/config"
 )
 
@@ -18,8 +20,8 @@ type Server struct {
 }
 
 // New creates and configures a new Server instance.
-func New(cfg *config.Config, logger *slog.Logger) *Server {
-	router := SetupRouter(cfg, logger)
+func New(cfg *config.Config, db *sql.DB, rdb *redis.Client, logger *slog.Logger) *Server {
+	router := SetupRouter(cfg, db, rdb, logger)
 
 	httpSrv := &http.Server{
 		Addr:         cfg.Address(),

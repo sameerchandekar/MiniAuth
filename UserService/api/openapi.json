@@ -18,6 +18,7 @@
     { "name": "Users", "description": "User creation, queries, and role assignments" },
     { "name": "Roles", "description": "Role creation, listing, and permission assignments" },
     { "name": "Permissions", "description": "Permission creation and listing" },
+    { "name": "Clients", "description": "OAuth 2.0 client registration, scopes, and redirect URIs" },
     { "name": "Health", "description": "Service health probes" }
   ],
   "paths": {
@@ -249,6 +250,217 @@
         }
       }
     },
+    "/api/v1/clients": {
+      "post": {
+        "tags": ["Clients"],
+        "summary": "Register a new OAuth 2.0 client",
+        "description": "Registers a new OAuth 2.0 client application with initial redirect URIs and scopes. Returns the generated or assigned client_secret for confidential clients.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterClientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Client registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponseWrapper"
+                }
+              }
+            }
+          },
+          "400": { "description": "Validation error" },
+          "409": { "description": "Client ID already exists" }
+        }
+      },
+      "get": {
+        "tags": ["Clients"],
+        "summary": "List registered clients",
+        "parameters": [
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientListResponseWrapper"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clients/{clientId}": {
+      "get": {
+        "tags": ["Clients"],
+        "summary": "Get client details",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client details with redirect URIs and scopes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientResponseWrapper"
+                }
+              }
+            }
+          },
+          "404": { "description": "Client not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Clients"],
+        "summary": "Delete client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Client deleted successfully" },
+          "404": { "description": "Client not found" }
+        }
+      }
+    },
+    "/api/v1/clients/{clientId}/scopes": {
+      "post": {
+        "tags": ["Clients"],
+        "summary": "Add scopes to client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddScopeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Scopes added successfully" },
+          "404": { "description": "Client not found" }
+        }
+      },
+      "put": {
+        "tags": ["Clients"],
+        "summary": "Replace / overwrite all scopes of client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddScopeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Scopes replaced successfully" },
+          "404": { "description": "Client not found" }
+        }
+      }
+    },
+    "/api/v1/clients/{clientId}/scopes/{scope}": {
+      "delete": {
+        "tags": ["Clients"],
+        "summary": "Remove scope from client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "scope", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Scope removed successfully" },
+          "404": { "description": "Client not found" }
+        }
+      }
+    },
+    "/api/v1/clients/{clientId}/redirect-uris": {
+      "post": {
+        "tags": ["Clients"],
+        "summary": "Add redirect URIs to client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRedirectURIRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Redirect URIs added successfully" },
+          "404": { "description": "Client not found" }
+        }
+      },
+      "put": {
+        "tags": ["Clients"],
+        "summary": "Replace / overwrite all redirect URIs of client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRedirectURIRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Redirect URIs replaced successfully" },
+          "404": { "description": "Client not found" }
+        }
+      },
+      "delete": {
+        "tags": ["Clients"],
+        "summary": "Remove redirect URI from client",
+        "parameters": [
+          { "name": "clientId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "redirect_uri", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "redirect_uri": { "type": "string", "example": "https://myapp.com/callback" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Redirect URI removed successfully" },
+          "404": { "description": "Client not found" }
+        }
+      }
+    },
     "/healthz": {
       "get": {
         "tags": ["Health"],
@@ -378,6 +590,87 @@
           "id": { "type": "string", "format": "uuid" },
           "name": { "type": "string", "example": "read:users" },
           "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "RegisterClientRequest": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "client_id": { "type": "string", "example": "my-demo-app" },
+          "client_secret": { "type": "string", "example": "custom_secret_key" },
+          "name": { "type": "string", "example": "Demo Application" },
+          "client_type": { "type": "string", "enum": ["confidential", "public"], "default": "confidential" },
+          "redirect_uris": {
+            "type": "array",
+            "items": { "type": "string", "format": "uri" },
+            "example": ["https://myapp.com/oauth/callback"]
+          },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["openid", "profile", "email", "read:files"]
+          }
+        }
+      },
+      "ClientResponseWrapper": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "message": { "type": "string", "example": "client registered successfully" },
+          "data": { "$ref": "#/components/schemas/ClientResponse" }
+        }
+      },
+      "ClientListResponseWrapper": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ClientResponse" }
+          }
+        }
+      },
+      "ClientResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "client_id": { "type": "string", "example": "my-demo-app" },
+          "client_secret": { "type": "string", "example": "3b8c6f1a...", "description": "Only returned upon registration for confidential clients" },
+          "name": { "type": "string", "example": "Demo Application" },
+          "client_type": { "type": "string", "enum": ["confidential", "public"] },
+          "redirect_uris": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["https://myapp.com/oauth/callback"]
+          },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["openid", "profile", "email"]
+          },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AddScopeRequest": {
+        "type": "object",
+        "properties": {
+          "scope": { "type": "string", "example": "write:files" },
+          "scopes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["write:files", "admin:all"]
+          }
+        }
+      },
+      "AddRedirectURIRequest": {
+        "type": "object",
+        "properties": {
+          "redirect_uri": { "type": "string", "format": "uri", "example": "https://myapp.com/callback" },
+          "redirect_uris": {
+            "type": "array",
+            "items": { "type": "string", "format": "uri" },
+            "example": ["https://myapp.com/callback", "http://localhost:3000/callback"]
+          }
         }
       }
     }

@@ -64,3 +64,38 @@ func TestOAuthService_Authorize_ScopeValidation(t *testing.T) {
 		t.Errorf("expected ErrScopeNotAllowed, got %v", err)
 	}
 }
+
+func TestOAuthService_Authorize_RedirectURIValidation(t *testing.T) {
+	clientRepo := repository.NewMemoryClientRepository()
+	authCodeRepo := repository.NewMemoryAuthCodeRepository()
+	svc := NewOAuthService(clientRepo, authCodeRepo)
+
+	t.Run("unregistered redirect URI returns error", func(t *testing.T) {
+		req := model.AuthorizeRequest{
+			ClientID:    "my-client-123",
+			RedirectURI: "https://attacker.com/evil/callback",
+			Scope:       "openid",
+		}
+
+		_, err := svc.Authorize(context.Background(), req)
+		if err != ErrInvalidRedirectURI {
+			t.Errorf("expected ErrInvalidRedirectURI, got %v", err)
+		}
+	})
+
+	t.Run("valid registered redirect URI succeeds", func(t *testing.T) {
+		req := model.AuthorizeRequest{
+			ClientID:    "my-client-123",
+			RedirectURI: "http://localhost:3000/callback",
+			Scope:       "openid",
+		}
+
+		res, err := svc.Authorize(context.Background(), req)
+		if err != nil {
+			t.Fatalf("unexpected error for valid redirect URI: %v", err)
+		}
+		if res.RedirectURI != "http://localhost:3000/callback" {
+			t.Errorf("expected redirect URI 'http://localhost:3000/callback', got '%s'", res.RedirectURI)
+		}
+	})
+}

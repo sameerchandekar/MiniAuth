@@ -58,8 +58,11 @@ func (s *DefaultOAuthService) Authorize(ctx context.Context, req model.Authorize
 		if len(client.RedirectURIs) > 0 {
 			redirectURI = client.RedirectURIs[0]
 		} else {
-			redirectURI = "https://myapp.com/oauth/callback"
+			return nil, ErrInvalidRedirectURI
 		}
+	}
+	if !isRedirectURIAllowed(redirectURI, client.RedirectURIs) {
+		return nil, ErrInvalidRedirectURI
 	}
 
 	// 3. Check if requested scopes are allowed
@@ -121,4 +124,13 @@ func generateAuthCode() string {
 		return "mock_auth_code_secret_xyz789"
 	}
 	return "authcode_" + hex.EncodeToString(b)
+}
+
+func isRedirectURIAllowed(requestedURI string, registeredURIs []string) bool {
+	for _, uri := range registeredURIs {
+		if uri == requestedURI {
+			return true
+		}
+	}
+	return false
 }

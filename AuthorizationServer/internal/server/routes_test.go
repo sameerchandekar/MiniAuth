@@ -13,7 +13,7 @@ import (
 func TestRouterEndpoints(t *testing.T) {
 	cfg := config.Load()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	router := SetupRouter(cfg, logger)
+	router := SetupRouter(cfg, nil, nil, logger)
 
 	tests := []struct {
 		name       string

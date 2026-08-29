@@ -42,7 +42,19 @@ func main() {
 		}
 	}()
 
-	// 4. Run database migrations on startup if enabled
+	// 4. Connect to Redis Cache & Session Store
+	rdb, err := database.ConnectRedis(cfg.Redis, logger)
+	if err != nil {
+		logger.Warn("failed to connect to redis, falling back to memory repository", slog.String("error", err.Error()))
+	} else {
+		defer func() {
+			if err := rdb.Close(); err != nil {
+				logger.Error("error closing redis connection", slog.String("error", err.Error()))
+			}
+		}()
+	}
+
+	// 5. Run database migrations on startup if enabled
 	if cfg.DB.AutoMigrate {
 		migrationCtx, migrationCancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer migrationCancel()
@@ -53,8 +65,8 @@ func main() {
 		}
 	}
 
-	// 5. Initialize HTTP server
-	srv := server.New(cfg, logger)
+	// 6. Initialize HTTP server
+	srv := server.New(cfg, db, rdb, logger)
 
 	// 6. Start server in background goroutine
 	serverErrors := make(chan error, 1)

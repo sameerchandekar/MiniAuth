@@ -3,6 +3,8 @@ package database
 import (
 	"testing"
 	"testing/fstest"
+
+	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/migrations"
 )
 
 func TestLoadMigrationFiles(t *testing.T) {
@@ -49,5 +51,24 @@ func TestLoadMigrationFiles(t *testing.T) {
 	}
 	if migrations[0].Checksum == 0 {
 		t.Errorf("expected non-zero checksum")
+	}
+}
+
+func TestActualEmbeddedMigrations(t *testing.T) {
+	files, err := loadMigrationFiles(migrations.FS)
+	if err != nil {
+		t.Fatalf("unexpected error loading embedded migrations: %v", err)
+	}
+
+	if len(files) < 2 {
+		t.Fatalf("expected at least 2 embedded migrations (V1, V2), got %d", len(files))
+	}
+
+	if files[0].VersionRaw != "1" || files[0].Filename != "V1__init_auth_schema.sql" {
+		t.Errorf("expected first embedded migration to be V1, got %s", files[0].Filename)
+	}
+
+	if files[1].VersionRaw != "2" || files[1].Filename != "V2__create_oauth_clients_tables.sql" {
+		t.Errorf("expected second embedded migration to be V2, got %s", files[1].Filename)
 	}
 }

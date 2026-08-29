@@ -41,16 +41,19 @@ func SetupRouter(cfg *config.Config, db *sql.DB, logger *slog.Logger) http.Handl
 	permRepo := repository.NewPermissionRepository(db)
 	roleRepo := repository.NewRoleRepository(db)
 	userRepo := repository.NewUserRepository(db, roleRepo)
+	clientRepo := repository.NewClientRepository(db)
 
 	// Services
 	permService := service.NewPermissionService(permRepo)
 	roleService := service.NewRoleService(roleRepo, permRepo)
 	userService := service.NewUserService(userRepo, roleRepo)
+	clientService := service.NewClientService(clientRepo)
 
 	// Handlers
 	permHandler := handler.NewPermissionHandler(permService)
 	roleHandler := handler.NewRoleHandler(roleService)
 	userHandler := handler.NewUserHandler(userService)
+	clientHandler := handler.NewClientHandler(clientService)
 	healthHandler := handler.NewHealthHandler(db)
 
 	// Probes & Swagger Docs
@@ -90,6 +93,24 @@ func SetupRouter(cfg *config.Config, db *sql.DB, logger *slog.Logger) http.Handl
 			r.Post("/", permHandler.Create)
 			r.Get("/", permHandler.List)
 			r.Get("/{id}", permHandler.Get)
+		})
+
+		// OAuth 2.0 Client Management
+		r.Route("/clients", func(r chi.Router) {
+			r.Post("/", clientHandler.Register)
+			r.Get("/", clientHandler.List)
+			r.Get("/{clientId}", clientHandler.Get)
+			r.Delete("/{clientId}", clientHandler.Delete)
+
+			// Scopes
+			r.Post("/{clientId}/scopes", clientHandler.AddScope)
+			r.Put("/{clientId}/scopes", clientHandler.SetScopes)
+			r.Delete("/{clientId}/scopes/{scope}", clientHandler.RemoveScope)
+
+			// Redirect URIs
+			r.Post("/{clientId}/redirect-uris", clientHandler.AddRedirectURI)
+			r.Put("/{clientId}/redirect-uris", clientHandler.SetRedirectURIs)
+			r.Delete("/{clientId}/redirect-uris", clientHandler.RemoveRedirectURI)
 		})
 	})
 

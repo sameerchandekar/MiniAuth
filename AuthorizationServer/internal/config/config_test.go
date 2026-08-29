@@ -49,6 +49,14 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DB.DSN() != expectedDSN {
 		t.Errorf("expected DSN %s, got %s", expectedDSN, cfg.DB.DSN())
 	}
+
+	// Test Redis defaults
+	if cfg.Redis.Addr != "localhost:6379" {
+		t.Errorf("expected default Redis Addr 'localhost:6379', got %s", cfg.Redis.Addr)
+	}
+	if cfg.Redis.DB != 0 {
+		t.Errorf("expected default Redis DB 0, got %d", cfg.Redis.DB)
+	}
 }
 
 func TestLoadDatabaseURL(t *testing.T) {
@@ -61,6 +69,33 @@ func TestLoadDatabaseURL(t *testing.T) {
 
 	if cfg.DB.DSN() != expectedURL {
 		t.Errorf("expected DSN to match DATABASE_URL %s, got %s", expectedURL, cfg.DB.DSN())
+	}
+}
+
+func TestLoadRedisURL(t *testing.T) {
+	os.Clearenv()
+	expectedURL := "redis://default:mFv3SaTNgsbycjmItIMKgpRbo3jEitxL@fulgent-jump-maroon-88822.db.redis.io:14418/0"
+	os.Setenv("REDIS_URL", expectedURL)
+	defer os.Clearenv()
+
+	cfg := Load()
+
+	if cfg.Redis.URL != expectedURL {
+		t.Errorf("expected Redis URL %s, got %s", expectedURL, cfg.Redis.URL)
+	}
+
+	opts, err := cfg.Redis.ClientOptions()
+	if err != nil {
+		t.Fatalf("unexpected error parsing redis options: %v", err)
+	}
+	if opts.Addr != "fulgent-jump-maroon-88822.db.redis.io:14418" {
+		t.Errorf("expected Redis Addr 'fulgent-jump-maroon-88822.db.redis.io:14418', got %s", opts.Addr)
+	}
+	if opts.Username != "default" {
+		t.Errorf("expected Redis Username 'default', got %s", opts.Username)
+	}
+	if opts.Password != "mFv3SaTNgsbycjmItIMKgpRbo3jEitxL" {
+		t.Errorf("expected Redis Password 'mFv3SaTNgsbycjmItIMKgpRbo3jEitxL', got %s", opts.Password)
 	}
 }
 
@@ -78,6 +113,10 @@ func TestLoadCustomEnv(t *testing.T) {
 	os.Setenv("DB_NAME", "custom_auth")
 	os.Setenv("DB_SSLMODE", "require")
 	os.Setenv("DB_AUTO_MIGRATE", "false")
+	os.Setenv("REDIS_ADDR", "fulgent-jump-maroon-88822.db.redis.io:14418")
+	os.Setenv("REDIS_USERNAME", "default")
+	os.Setenv("REDIS_PASSWORD", "mFv3SaTNgsbycjmItIMKgpRbo3jEitxL")
+	os.Setenv("REDIS_DB", "1")
 	defer os.Clearenv()
 
 	cfg := Load()
@@ -113,5 +152,19 @@ func TestLoadCustomEnv(t *testing.T) {
 	}
 	if cfg.DB.SSLMode != "require" {
 		t.Errorf("expected DB SSLMode 'require', got %s", cfg.DB.SSLMode)
+	}
+
+	// Test custom Redis
+	if cfg.Redis.Addr != "fulgent-jump-maroon-88822.db.redis.io:14418" {
+		t.Errorf("expected Redis Addr 'fulgent-jump-maroon-88822.db.redis.io:14418', got %s", cfg.Redis.Addr)
+	}
+	if cfg.Redis.Username != "default" {
+		t.Errorf("expected Redis Username 'default', got %s", cfg.Redis.Username)
+	}
+	if cfg.Redis.Password != "mFv3SaTNgsbycjmItIMKgpRbo3jEitxL" {
+		t.Errorf("expected Redis Password 'mFv3SaTNgsbycjmItIMKgpRbo3jEitxL', got %s", cfg.Redis.Password)
+	}
+	if cfg.Redis.DB != 1 {
+		t.Errorf("expected Redis DB 1, got %d", cfg.Redis.DB)
 	}
 }

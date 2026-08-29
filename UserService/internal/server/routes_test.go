@@ -26,6 +26,9 @@ func TestRouterRoutes(t *testing.T) {
 		{"Healthz", http.MethodGet, "/healthz", http.StatusOK},
 		{"Readyz with nil DB", http.MethodGet, "/readyz", http.StatusOK},
 		{"Root redirects to Swagger", http.MethodGet, "/", http.StatusMovedPermanently},
+		{"Register Client Invalid Body", http.MethodPost, "/api/v1/clients", http.StatusBadRequest},
+		{"Add Scope Invalid Body", http.MethodPost, "/api/v1/clients/test-client/scopes", http.StatusBadRequest},
+		{"Add Redirect URI Invalid Body", http.MethodPost, "/api/v1/clients/test-client/redirect-uris", http.StatusBadRequest},
 	}
 
 	for _, tt := range tests {
