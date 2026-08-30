@@ -61,7 +61,7 @@ func SetupRouter(cfg *config.Config, db *sql.DB, rdb *redis.Client, logger *slog
 	}
 
 	jwtSigner, _ := crypto.NewJWTSigner(cfg.JWT, cfg.IssuerURL, logger)
-	oauthService := service.NewOAuthService(clientRepo, authCodeRepo, refreshTokenRepo, jwtSigner)
+	oauthService := service.NewOAuthService(clientRepo, authCodeRepo, refreshTokenRepo, jwtSigner).WithDB(db)
 
 	var sessionStore service.SessionStore
 	if rdb != nil {

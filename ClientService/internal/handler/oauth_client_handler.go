@@ -27,7 +27,6 @@ const indexHTMLTemplate = `<!DOCTYPE html>
             --card-border: rgba(255, 255, 255, 0.1);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --accent: #38bdf8;
         }
 
         * {
@@ -47,46 +46,42 @@ const indexHTMLTemplate = `<!DOCTYPE html>
             padding: 20px;
         }
 
-        .container {
-            width: 100%;
-            max-width: 520px;
+        .card {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 40px;
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(16px);
-            text-align: center;
         }
 
-        .badge {
-            display: inline-block;
-            background: rgba(79, 70, 229, 0.2);
-            color: var(--accent);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            padding: 6px 14px;
-            border-radius: 9999px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: 20px;
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 1.8rem;
             font-weight: 700;
             margin-bottom: 12px;
-            background: linear-gradient(to right, #ffffff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
         }
 
-        p.subtitle {
+        p {
             color: var(--text-muted);
-            font-size: 0.95rem;
-            line-height: 1.5;
-            margin-bottom: 32px;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 36px;
         }
 
         .btn-login {
@@ -96,81 +91,62 @@ const indexHTMLTemplate = `<!DOCTYPE html>
             gap: 12px;
             width: 100%;
             padding: 16px 24px;
-            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
-            color: #ffffff;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
             font-size: 1.05rem;
             font-weight: 600;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
             text-decoration: none;
-            transition: all 0.2s ease;
-            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
         }
 
         .btn-login:hover {
-            background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary) 100%);
             transform: translateY(-2px);
             box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.6);
-        }
-
-        .btn-login svg {
-            width: 22px;
-            height: 22px;
+            background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
         }
 
         .features {
             margin-top: 36px;
-            padding-top: 28px;
+            padding-top: 24px;
             border-top: 1px solid var(--card-border);
-            text-align: left;
+            display: flex;
+            justify-content: space-around;
+            font-size: 0.82rem;
+            color: var(--text-muted);
         }
 
         .feature-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            color: var(--text-muted);
-            font-size: 0.88rem;
-            margin-bottom: 12px;
-        }
-
-        .feature-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .feature-icon {
-            color: #10b981;
-            font-weight: bold;
+            gap: 6px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="badge">OAuth 2.0 &amp; PKCE Client</div>
-        <h1>Client Application</h1>
-        <p class="subtitle">Securely sign in and authenticate against MiniAuth Authorization Server using Authorization Code Flow + PKCE (RFC 7636).</p>
-
-        <a href="/login" class="btn-login" id="loginButton">
-            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+    <div class="card">
+        <div class="logo-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+        </div>
+        <h1>MiniAuth Demo Client</h1>
+        <p>Experience seamless OAuth 2.0 PKCE & OIDC authorization with our centralized identity provider.</p>
+        
+        <a href="/login" class="btn-login">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
             </svg>
             Login with mini auth
         </a>
 
         <div class="features">
-            <div class="feature-item">
-                <span class="feature-icon">&#10003;</span>
-                <span>PKCE S256 Code Challenge Protection</span>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">&#10003;</span>
-                <span>Automatic /oauth/callback Token Exchange</span>
-            </div>
-            <div class="feature-item">
-                <span class="feature-icon">&#10003;</span>
-                <span>Refresh Token &amp; Access Token Retrieval</span>
-            </div>
+            <div class="feature-item">🔒 PKCE (S256)</div>
+            <div class="feature-item">⚡ Redis State</div>
+            <div class="feature-item">🛡️ RS256 JWT</div>
         </div>
     </div>
 </body>
@@ -213,7 +189,7 @@ const callbackHTMLTemplate = `<!DOCTYPE html>
 
         .container {
             width: 100%;
-            max-width: 680px;
+            max-width: 700px;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 20px;
@@ -224,7 +200,7 @@ const callbackHTMLTemplate = `<!DOCTYPE html>
 
         .header {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
 
         .success-icon {
@@ -237,6 +213,27 @@ const callbackHTMLTemplate = `<!DOCTYPE html>
             align-items: center;
             justify-content: center;
             margin-bottom: 12px;
+        }
+
+        .welcome-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .welcome-sub {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
         }
 
         h1 {
@@ -322,9 +319,33 @@ const callbackHTMLTemplate = `<!DOCTYPE html>
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Tokens received from MiniAuth Authorization Server</p>
         </div>
 
+        {{ if .UserName }}
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome, {{ .UserName }}! 👋</div>
+            <div class="welcome-sub">Authenticated User ID: <strong style="color: #38bdf8;">{{ .UserID }}</strong>{{ if and .UserEmail (ne .UserName .UserEmail) }} &bull; <span>{{ .UserEmail }}</span>{{ end }}</div>
+        </div>
+        {{ else if .UserEmail }}
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome, {{ .UserEmail }}! 👋</div>
+            <div class="welcome-sub">Authenticated User ID: <strong style="color: #38bdf8;">{{ .UserID }}</strong></div>
+        </div>
+        {{ else if .UserID }}
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome! 👋</div>
+            <div class="welcome-sub">Authenticated User ID: <strong style="color: #38bdf8;">{{ .UserID }}</strong></div>
+        </div>
+        {{ end }}
+
         <div class="token-grid">
+            {{ if .IDToken }}
             <div class="token-item">
-                <div class="token-label">Access Token</div>
+                <div class="token-label">ID Token (OIDC Identity)</div>
+                <div class="token-val" style="color: #fb923c;">{{ .IDToken }}</div>
+            </div>
+            {{ end }}
+
+            <div class="token-item">
+                <div class="token-label">Access Token (JWT)</div>
                 <div class="token-val">{{ .AccessToken }}</div>
             </div>
 
@@ -368,7 +389,11 @@ type CallbackPageData struct {
 	TokenType    string
 	ExpiresIn    int
 	RefreshToken string
+	IDToken      string
 	Scope        string
+	UserName     string
+	UserEmail    string
+	UserID       string
 	RawJSON      string
 }
 
@@ -381,8 +406,8 @@ type OAuthClientHandler struct {
 
 // NewOAuthClientHandler creates a new OAuthClientHandler.
 func NewOAuthClientHandler(clientService *service.OAuthClientService) *OAuthClientHandler {
-	idxTmpl := template.Must(template.New("index").Parse(indexHTMLTemplate))
-	cbTmpl := template.Must(template.New("callback").Parse(callbackHTMLTemplate))
+	idxTmpl, _ := template.New("index").Parse(indexHTMLTemplate)
+	cbTmpl, _ := template.New("callback").Parse(callbackHTMLTemplate)
 
 	return &OAuthClientHandler{
 		clientService: clientService,
@@ -391,42 +416,29 @@ func NewOAuthClientHandler(clientService *service.OAuthClientService) *OAuthClie
 	}
 }
 
-// Index renders the landing page with the 'Login with mini auth' button.
+// Index serves the main landing page with the "Login with mini auth" button.
 func (h *OAuthClientHandler) Index(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = h.indexTmpl.Execute(w, nil)
 }
 
-// Login triggers the OAuth 2.0 authorization flow.
-// It generates PKCE credentials, stores state in Redis, and redirects the user-agent to AuthorizationServer /authorize.
+// Login initiates the PKCE Authorization Code flow by redirecting to AuthorizationServer.
 func (h *OAuthClientHandler) Login(w http.ResponseWriter, r *http.Request) {
-	authURL, state, err := h.clientService.BuildAuthorizeURL(r.Context())
+	authURL, _, err := h.clientService.BuildAuthorizeURL(r.Context())
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to initiate authorization: %v", err), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to generate authorization URL: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	// Support JSON response if client specifically requested application/json
-	if r.Header.Get("Accept") == "application/json" || r.URL.Query().Get("format") == "json" {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"authorize_url": authURL,
-			"state":         state,
-		})
-		return
-	}
-
-	// Browser redirect (HTTP 302 Found) to AuthorizationServer
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-// Callback handles GET /oauth/callback from AuthorizationServer redirect.
-// It verifies the state ID from Redis, deletes it, and exchanges the authorization code for tokens.
+// Callback handles GET /oauth/callback from AuthorizationServer.
 func (h *OAuthClientHandler) Callback(w http.ResponseWriter, r *http.Request) {
-	// Check for error parameter from authorization server
+	// Handle authorization server error query params
 	if errParam := r.URL.Query().Get("error"); errParam != "" {
 		errDesc := r.URL.Query().Get("error_description")
-		http.Error(w, fmt.Sprintf("OAuth error from authorization server: %s (%s)", errParam, errDesc), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Authorization Error: %s (%s)", errParam, errDesc), http.StatusBadRequest)
 		return
 	}
 
@@ -456,16 +468,34 @@ func (h *OAuthClientHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Render beautiful HTML callback page
+	// Extract Scope and User Identity from ID Token & Access Token
 	rawJSONBytes, _ := json.MarshalIndent(tokenRes, "", "  ")
 	scope := extractJWTScope(tokenRes.AccessToken)
+	userName, userEmail, userID := extractIDTokenClaims(tokenRes.IDToken)
+
+	if userID == "" {
+		userID = extractJWTSubject(tokenRes.AccessToken)
+	}
+	if userName == "" {
+		if userEmail != "" {
+			userName = userEmail
+		} else if userID != "" && !isUUIDString(userID) {
+			userName = userID
+		} else {
+			userName = "User"
+		}
+	}
 
 	data := CallbackPageData{
 		AccessToken:  tokenRes.AccessToken,
 		TokenType:    tokenRes.TokenType,
 		ExpiresIn:    tokenRes.ExpiresIn,
 		RefreshToken: tokenRes.RefreshToken,
+		IDToken:      tokenRes.IDToken,
 		Scope:        scope,
+		UserName:     userName,
+		UserEmail:    userEmail,
+		UserID:       userID,
 		RawJSON:      string(rawJSONBytes),
 	}
 
@@ -487,4 +517,64 @@ func extractJWTScope(accessToken string) string {
 	}
 	_ = json.Unmarshal(payloadBytes, &claims)
 	return claims.Scope
+}
+
+func extractJWTSubject(tokenStr string) string {
+	parts := strings.Split(tokenStr, ".")
+	if len(parts) < 2 {
+		return ""
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Sub string `json:"sub"`
+	}
+	_ = json.Unmarshal(payloadBytes, &claims)
+	return claims.Sub
+}
+
+func extractIDTokenClaims(idToken string) (name, email, sub string) {
+	if idToken == "" {
+		return "", "", ""
+	}
+	parts := strings.Split(idToken, ".")
+	if len(parts) < 2 {
+		return "", "", ""
+	}
+	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", "", ""
+	}
+	var claims struct {
+		Name              string `json:"name"`
+		Email             string `json:"email"`
+		Sub               string `json:"sub"`
+		PreferredUsername string `json:"preferred_username"`
+	}
+	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
+		return "", "", ""
+	}
+
+	name = claims.Name
+	email = claims.Email
+	sub = claims.Sub
+
+	// Prioritize human Name -> Email -> PreferredUsername (avoid raw UUID as display name)
+	if isUUIDString(name) || name == "" {
+		if email != "" {
+			name = email
+		} else if claims.PreferredUsername != "" && !isUUIDString(claims.PreferredUsername) {
+			name = claims.PreferredUsername
+		} else if sub != "" && !isUUIDString(sub) {
+			name = sub
+		}
+	}
+
+	return name, email, sub
+}
+
+func isUUIDString(s string) bool {
+	return len(s) == 36 && strings.Count(s, "-") == 4
 }

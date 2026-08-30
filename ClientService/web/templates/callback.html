@@ -35,7 +35,7 @@
 
         .container {
             width: 100%;
-            max-width: 680px;
+            max-width: 700px;
             background: var(--card-bg);
             border: 1px solid var(--card-border);
             border-radius: 20px;
@@ -46,7 +46,7 @@
 
         .header {
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
         }
 
         .success-icon {
@@ -59,6 +59,27 @@
             align-items: center;
             justify-content: center;
             margin-bottom: 12px;
+        }
+
+        .welcome-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .welcome-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .welcome-sub {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
         }
 
         h1 {
@@ -144,9 +165,33 @@
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Tokens received from MiniAuth Authorization Server</p>
         </div>
 
+        {{ if .UserName }}
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome, {{ .UserName }}! 👋</div>
+            <div class="welcome-sub">Authenticated User ID: <strong style="color: #38bdf8;">{{ .UserID }}</strong>{{ if and .UserEmail (ne .UserName .UserEmail) }} &bull; <span>{{ .UserEmail }}</span>{{ end }}</div>
+        </div>
+        {{ else if .UserEmail }}
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome, {{ .UserEmail }}! 👋</div>
+            <div class="welcome-sub">Authenticated User ID: <strong style="color: #38bdf8;">{{ .UserID }}</strong></div>
+        </div>
+        {{ else if .UserID }}
+        <div class="welcome-card">
+            <div class="welcome-title">Welcome! 👋</div>
+            <div class="welcome-sub">Authenticated User ID: <strong style="color: #38bdf8;">{{ .UserID }}</strong></div>
+        </div>
+        {{ end }}
+
         <div class="token-grid">
+            {{ if .IDToken }}
             <div class="token-item">
-                <div class="token-label">Access Token</div>
+                <div class="token-label">ID Token (OIDC Identity)</div>
+                <div class="token-val" style="color: #fb923c;">{{ .IDToken }}</div>
+            </div>
+            {{ end }}
+
+            <div class="token-item">
+                <div class="token-label">Access Token (JWT)</div>
                 <div class="token-val">{{ .AccessToken }}</div>
             </div>
 

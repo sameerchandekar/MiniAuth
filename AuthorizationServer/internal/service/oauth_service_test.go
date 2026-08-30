@@ -154,6 +154,9 @@ func TestOAuthService_Token_Success(t *testing.T) {
 	if tokenRes.RefreshToken == "" {
 		t.Errorf("expected refresh_token to be non-empty")
 	}
+	if tokenRes.IDToken == "" {
+		t.Errorf("expected id_token to be generated and non-empty")
+	}
 
 	// 3. Verify RS256 JWT Access Token claims contain Scope (RFC 9068) using Public Key
 	var claims AccessTokenClaims
@@ -174,6 +177,18 @@ func TestOAuthService_Token_Success(t *testing.T) {
 	}
 	if claims.Issuer != "http://localhost:8080" {
 		t.Errorf("expected issuer claim 'http://localhost:8080', got '%s'", claims.Issuer)
+	}
+
+	// Verify ID Token claims
+	var idClaims IDTokenClaims
+	parsedIDToken, err := jwt.ParseWithClaims(tokenRes.IDToken, &idClaims, func(token *jwt.Token) (interface{}, error) {
+		return jwtSigner.PublicKey(), nil
+	})
+	if err != nil || !parsedIDToken.Valid {
+		t.Fatalf("failed to parse/validate ID token: %v", err)
+	}
+	if idClaims.Subject != "my-client-123" {
+		t.Errorf("expected ID token sub 'my-client-123', got '%s'", idClaims.Subject)
 	}
 
 	// 4. Verify that the refresh token was persisted in repository
