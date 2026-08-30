@@ -14,19 +14,40 @@ import (
 // OAuthHandler handles OAuth 2.0 and OIDC protocol endpoints.
 type OAuthHandler struct {
 	oauthService service.OAuthService
+	authService  service.AuthService
 }
 
-// NewOAuthHandler creates a new OAuthHandler with the required OAuthService.
-func NewOAuthHandler(oauthService service.OAuthService) *OAuthHandler {
+// NewOAuthHandler creates a new OAuthHandler with OAuthService and AuthService.
+func NewOAuthHandler(oauthService service.OAuthService, authService service.AuthService) *OAuthHandler {
 	return &OAuthHandler{
 		oauthService: oauthService,
+		authService:  authService,
 	}
 }
 
 // Authorize handles GET /authorize (OAuth 2.0 Authorization Endpoint).
-// It accepts client_id, redirect_uri, response_type, scope, state, code_challenge, and code_challenge_method,
-// delegates validation and code generation to the service layer, and issues an HTTP 302 Found redirect.
+// It checks for a valid authenticated session cookie (auth_session). If missing or expired,
+// it redirects the user to the login page (/login) preserving the original authorization request.
 func (h *OAuthHandler) Authorize(w http.ResponseWriter, r *http.Request) {
+	// 1. Session verification: Check for auth_session cookie
+	var session *service.SessionData
+	cookie, err := r.Cookie("auth_session")
+	if err == nil && cookie.Value != "" && h.authService != nil {
+		session, _ = h.authService.ValidateSession(r.Context(), cookie.Value)
+	}
+
+	// 2. If unauthenticated, redirect to the login page with return_to
+	if session == nil {
+		returnTo := r.URL.RequestURI()
+		http.Redirect(w, r, "/login?return_to="+url.QueryEscape(returnTo), http.StatusFound)
+		return
+	}
+
+	var userID *string
+	if session.UserID != "" {
+		userID = &session.UserID
+	}
+
 	req := model.AuthorizeRequest{
 		ClientID:            r.URL.Query().Get("client_id"),
 		RedirectURI:         r.URL.Query().Get("redirect_uri"),
@@ -35,6 +56,7 @@ func (h *OAuthHandler) Authorize(w http.ResponseWriter, r *http.Request) {
 		State:               r.URL.Query().Get("state"),
 		CodeChallenge:       r.URL.Query().Get("code_challenge"),
 		CodeChallengeMethod: r.URL.Query().Get("code_challenge_method"),
+		UserID:              userID,
 	}
 
 	result, err := h.oauthService.Authorize(r.Context(), req)

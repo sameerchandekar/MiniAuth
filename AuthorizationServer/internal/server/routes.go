@@ -63,15 +63,30 @@ func SetupRouter(cfg *config.Config, db *sql.DB, rdb *redis.Client, logger *slog
 	jwtSigner, _ := crypto.NewJWTSigner(cfg.JWT, cfg.IssuerURL, logger)
 	oauthService := service.NewOAuthService(clientRepo, authCodeRepo, refreshTokenRepo, jwtSigner)
 
+	var sessionStore service.SessionStore
+	if rdb != nil {
+		sessionStore = service.NewRedisSessionStore(rdb)
+	} else {
+		sessionStore = service.NewMemorySessionStore()
+	}
+	authService := service.NewAuthService(db, sessionStore)
+
 	// Handlers
 	healthHandler := handler.NewHealthHandler(cfg)
-	oauthHandler := handler.NewOAuthHandler(oauthService)
+	oauthHandler := handler.NewOAuthHandler(oauthService, authService)
+	loginHandler := handler.NewLoginHandler(authService)
 	jwksHandler := handler.NewJWKSHandler(jwtSigner)
 
 	// Health and Status Handlers
 	r.Get("/", healthHandler.Root)
 	r.Get("/healthz", healthHandler.Healthz)
 	r.Get("/readyz", healthHandler.Readyz)
+
+	// User Authentication & Session Endpoints
+	r.Get("/login", loginHandler.LoginPage)
+	r.Post("/login", loginHandler.Login)
+	r.Get("/logout", loginHandler.Logout)
+	r.Post("/logout", loginHandler.Logout)
 
 	// OAuth 2.0 / OIDC Authorize & Token Endpoints (Standard & subrouted)
 	r.Get("/authorize", oauthHandler.Authorize)
