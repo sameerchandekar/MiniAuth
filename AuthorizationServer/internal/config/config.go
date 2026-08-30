@@ -31,6 +31,20 @@ type Config struct {
 
 	// Redis settings
 	Redis RedisConfig
+
+	// JWT settings
+	JWT JWTConfig
+}
+
+// JWTConfig holds JWT signing and expiration settings (RSA RS256 / HMAC HS256).
+type JWTConfig struct {
+	PrivateKeyPath string        // Path to RSA private key PEM file (e.g. "keys/private_key.pem")
+	PublicKeyPath  string        // Path to RSA public key PEM file (e.g. "keys/public_key.pem")
+	PrivateKeyPEM  string        // Inline RSA private key PEM string
+	PublicKeyPEM   string        // Inline RSA public key PEM string
+	KeyID          string        // Key ID for JWKS and JWT header (e.g. "miniauth-key-1")
+	Secret         string        // Fallback symmetric HMAC secret
+	TTL            time.Duration // JWT access token expiration (default: 1 hour)
 }
 
 // DatabaseConfig holds PostgreSQL connection and migration settings.
@@ -144,6 +158,16 @@ func Load() *Config {
 			Username: getEnv("REDIS_USERNAME", getEnv("REDIS_USER", "")),
 			Password: getEnv("REDIS_PASSWORD", ""),
 			DB:       getEnvAsInt("REDIS_DB", 0),
+		},
+
+		JWT: JWTConfig{
+			PrivateKeyPath: getEnv("JWT_PRIVATE_KEY_PATH", "keys/private_key.pem"),
+			PublicKeyPath:  getEnv("JWT_PUBLIC_KEY_PATH", "keys/public_key.pem"),
+			PrivateKeyPEM:  getEnv("JWT_PRIVATE_KEY", ""),
+			PublicKeyPEM:   getEnv("JWT_PUBLIC_KEY", ""),
+			KeyID:          getEnv("JWT_KEY_ID", "miniauth-key-1"),
+			Secret:         getEnv("JWT_SECRET", "miniauth-default-jwt-secret-key-32bytes-long"),
+			TTL:            getEnvAsDuration("JWT_TTL", 1*time.Hour),
 		},
 	}
 }

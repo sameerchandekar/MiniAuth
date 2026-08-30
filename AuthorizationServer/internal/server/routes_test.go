@@ -27,6 +27,10 @@ func TestRouterEndpoints(t *testing.T) {
 		{"OAuth ping endpoint", http.MethodGet, "/oauth/ping", http.StatusOK},
 		{"Authorize endpoint with redirect", http.MethodGet, "/authorize?redirect_uri=https://myapp.com/callback&state=test", http.StatusFound},
 		{"OAuth Authorize endpoint with redirect", http.MethodGet, "/oauth/authorize?redirect_uri=https://myapp.com/callback&state=test", http.StatusFound},
+		{"Token endpoint invalid grant", http.MethodPost, "/token", http.StatusBadRequest},
+		{"OAuth Token endpoint invalid grant", http.MethodPost, "/oauth/token", http.StatusBadRequest},
+		{"JWKS endpoint", http.MethodGet, "/.well-known/jwks.json", http.StatusOK},
+		{"OAuth JWKS endpoint", http.MethodGet, "/oauth/.well-known/jwks.json", http.StatusOK},
 		{"Not found endpoint", http.MethodGet, "/unknown-endpoint", http.StatusNotFound},
 	}
 

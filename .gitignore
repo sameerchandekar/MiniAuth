@@ -23,6 +23,11 @@ go.work
 .env
 .env.local
 
+# Cryptographic Keys (Private & Public RSA Keys)
+keys/
+*.pem
+*.key
+
 # IDEs
 .idea/
 .vscode/

@@ -3,39 +3,75 @@ package service
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/config"
+	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/crypto"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/model"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/repository"
 )
 
 var (
+	// Authorize errors
 	ErrInvalidClientID     = errors.New("invalid_request: client_id is required")
 	ErrClientValidation    = errors.New("unauthorized_client: client is not authorized or not found")
 	ErrInvalidRedirectURI  = errors.New("invalid_request: redirect_uri is not registered for this client")
 	ErrScopeNotAllowed     = errors.New("invalid_scope: requested scope exceeds allowed scopes")
 	ErrUnsupportedResponse = errors.New("unsupported_response_type: only 'code' response_type is supported")
+
+	// Token endpoint RFC 6749 Section 5.2 standard errors
+	ErrInvalidRequest       = errors.New("invalid_request")
+	ErrInvalidClient        = errors.New("invalid_client")
+	ErrInvalidGrant         = errors.New("invalid_grant")
+	ErrUnauthorizedClient   = errors.New("unauthorized_client")
+	ErrUnsupportedGrantType = errors.New("unsupported_grant_type")
+	ErrInvalidScope         = errors.New("invalid_scope")
 )
 
-// OAuthService defines the interface for OAuth 2.0 authorization logic.
+// AccessTokenClaims defines the JWT claims payload for OAuth 2.0 access tokens (RFC 9068).
+type AccessTokenClaims struct {
+	jwt.RegisteredClaims
+	ClientID string `json:"client_id"`
+	Scope    string `json:"scope"`
+}
+
+// OAuthService defines the interface for OAuth 2.0 authorization and token issuance logic.
 type OAuthService interface {
 	Authorize(ctx context.Context, req model.AuthorizeRequest) (*model.AuthorizeResult, error)
+	Token(ctx context.Context, req model.TokenRequest) (*model.TokenResponse, error)
 }
 
 // DefaultOAuthService implements OAuthService.
 type DefaultOAuthService struct {
-	clientRepo   repository.ClientRepository
-	authCodeRepo repository.AuthCodeRepository
+	clientRepo       repository.ClientRepository
+	authCodeRepo     repository.AuthCodeRepository
+	refreshTokenRepo repository.RefreshTokenRepository
+	jwtSigner        *crypto.JWTSigner
 }
 
 // NewOAuthService creates a new DefaultOAuthService.
-func NewOAuthService(clientRepo repository.ClientRepository, authCodeRepo repository.AuthCodeRepository) *DefaultOAuthService {
+func NewOAuthService(
+	clientRepo repository.ClientRepository,
+	authCodeRepo repository.AuthCodeRepository,
+	refreshTokenRepo repository.RefreshTokenRepository,
+	jwtSigner *crypto.JWTSigner,
+) *DefaultOAuthService {
+	if jwtSigner == nil {
+		jwtSigner, _ = crypto.NewJWTSigner(config.JWTConfig{}, "http://localhost:8080", nil)
+	}
 	return &DefaultOAuthService{
-		clientRepo:   clientRepo,
-		authCodeRepo: authCodeRepo,
+		clientRepo:       clientRepo,
+		authCodeRepo:     authCodeRepo,
+		refreshTokenRepo: refreshTokenRepo,
+		jwtSigner:        jwtSigner,
 	}
 }
 
@@ -79,6 +115,7 @@ func (s *DefaultOAuthService) Authorize(ctx context.Context, req model.Authorize
 	authCodeData := &model.AuthCode{
 		Code:                code,
 		ClientID:            client.ClientID,
+		UserID:              req.UserID,
 		RedirectURI:         redirectURI,
 		Scope:               req.Scope,
 		CodeChallenge:       req.CodeChallenge,
@@ -101,6 +138,165 @@ func (s *DefaultOAuthService) Authorize(ctx context.Context, req model.Authorize
 		Code:        code,
 		State:       state,
 	}, nil
+}
+
+// Token exchanges an authorization code for an RS256 signed JWT access token and refresh token,
+// with scopes embedded directly into JWT claims.
+func (s *DefaultOAuthService) Token(ctx context.Context, req model.TokenRequest) (*model.TokenResponse, error) {
+	// 1. Validate grant_type
+	if strings.TrimSpace(req.GrantType) != "authorization_code" {
+		return nil, fmt.Errorf("%w: unsupported grant_type '%s', only 'authorization_code' is supported", ErrUnsupportedGrantType, req.GrantType)
+	}
+
+	codeStr := strings.TrimSpace(req.Code)
+	if codeStr == "" {
+		return nil, fmt.Errorf("%w: code parameter is required", ErrInvalidRequest)
+	}
+
+	// 2. Fetch and single-use invalidate authorization code from storage (Redis)
+	authCode, err := s.authCodeRepo.Get(ctx, codeStr)
+	if err != nil {
+		return nil, fmt.Errorf("%w: authorization code is invalid or expired", ErrInvalidGrant)
+	}
+
+	// Delete immediately to enforce single-use semantics (RFC 6749 Section 4.1.2)
+	_ = s.authCodeRepo.Delete(ctx, codeStr)
+
+	if authCode == nil {
+		return nil, fmt.Errorf("%w: authorization code not found", ErrInvalidGrant)
+	}
+
+	if time.Now().After(authCode.ExpiresAt) {
+		return nil, fmt.Errorf("%w: authorization code has expired", ErrInvalidGrant)
+	}
+
+	// 3. Verify client_id match
+	reqClientID := strings.TrimSpace(req.ClientID)
+	if reqClientID != "" && authCode.ClientID != reqClientID {
+		return nil, fmt.Errorf("%w: client_id mismatch", ErrInvalidGrant)
+	}
+
+	// Verify client is registered in database
+	client, err := s.clientRepo.GetByClientID(ctx, authCode.ClientID)
+	if err != nil || client == nil {
+		return nil, fmt.Errorf("%w: registered client not found", ErrInvalidClient)
+	}
+
+	// 4. Verify redirect_uri match (RFC 6749 Section 4.1.3)
+	reqRedirectURI := strings.TrimSpace(req.RedirectURI)
+	if reqRedirectURI != "" && authCode.RedirectURI != reqRedirectURI {
+		return nil, fmt.Errorf("%w: redirect_uri mismatch", ErrInvalidGrant)
+	}
+
+	// 5. PKCE Verification (RFC 7636 Section 4.6)
+	if authCode.CodeChallenge != "" {
+		codeVerifier := strings.TrimSpace(req.CodeVerifier)
+		if codeVerifier == "" {
+			return nil, fmt.Errorf("%w: code_verifier is required for PKCE-protected code", ErrInvalidGrant)
+		}
+		if !verifyCodeChallenge(codeVerifier, authCode.CodeChallenge, authCode.CodeChallengeMethod) {
+			return nil, fmt.Errorf("%w: code_verifier does not match code_challenge", ErrInvalidGrant)
+		}
+	}
+
+	// 6. Generate signed JWT Access Token using RS256 with embedded scope claims (RFC 9068)
+	now := time.Now()
+	ttl := s.jwtSigner.TTL()
+	if ttl <= 0 {
+		ttl = 1 * time.Hour
+	}
+	expiresAt := now.Add(ttl)
+	sub := authCode.ClientID
+	if authCode.UserID != nil && *authCode.UserID != "" {
+		sub = *authCode.UserID
+	}
+
+	claims := AccessTokenClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    s.jwtSigner.Issuer(),
+			Subject:   sub,
+			Audience:  jwt.ClaimStrings{authCode.ClientID},
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(now),
+			NotBefore: jwt.NewNumericDate(now),
+			ID:        generateUUID(),
+		},
+		ClientID: authCode.ClientID,
+		Scope:    authCode.Scope,
+	}
+
+	accessToken, err := s.jwtSigner.SignToken(claims)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign jwt access token: %w", err)
+	}
+
+	// 7. Generate raw refresh token
+	rawRefreshToken := "rt_" + generateSecureToken(32)
+
+	// 8. Persist refresh token hash in refresh_tokens table
+	tokenHash := hashToken(rawRefreshToken)
+	familyID := generateUUID()
+	familyExpiresAt := now.Add(90 * 24 * time.Hour) // 90 days
+
+	rtRecord := &model.RefreshToken{
+		TokenHash:       tokenHash,
+		UserID:          authCode.UserID,
+		ClientID:        authCode.ClientID,
+		FamilyID:        familyID,
+		CreatedAt:       now,
+		ExpiresAt:       now.Add(30 * 24 * time.Hour), // 30 days
+		FamilyExpiresAt: familyExpiresAt,
+	}
+
+	if s.refreshTokenRepo != nil {
+		if err := s.refreshTokenRepo.Create(ctx, rtRecord); err != nil {
+			return nil, fmt.Errorf("failed to persist refresh token: %w", err)
+		}
+	}
+
+	// Note: Scope is conveyed inside JWT claims and omitted from response body per requirement
+	return &model.TokenResponse{
+		AccessToken:  accessToken,
+		TokenType:    "Bearer",
+		ExpiresIn:    int(ttl.Seconds()),
+		RefreshToken: rawRefreshToken,
+	}, nil
+}
+
+func hashToken(token string) string {
+	h := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(h[:])
+}
+
+func generateUUID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return hex.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
+	}
+	b[6] = (b[6] & 0x0f) | 0x40 // Version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // Variant RFC4122
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+func verifyCodeChallenge(codeVerifier, expectedChallenge, method string) bool {
+	switch strings.ToUpper(method) {
+	case "S256":
+		h := sha256.Sum256([]byte(codeVerifier))
+		computed := base64.RawURLEncoding.EncodeToString(h[:])
+		return subtle.ConstantTimeCompare([]byte(computed), []byte(expectedChallenge)) == 1
+	case "PLAIN", "":
+		return subtle.ConstantTimeCompare([]byte(codeVerifier), []byte(expectedChallenge)) == 1
+	default:
+		return false
+	}
+}
+
+func generateSecureToken(byteLen int) string {
+	b := make([]byte, byteLen)
+	if _, err := rand.Read(b); err != nil {
+		return hex.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
+	}
+	return hex.EncodeToString(b)
 }
 
 func isScopeAllowed(requestedScope string, allowedScopes []string) bool {

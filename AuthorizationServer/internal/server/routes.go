@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/redis/go-redis/v9"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/config"
+	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/crypto"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/handler"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/repository"
 	"github.com/sameerchandekar/MiniAuth/AuthorizationServer/internal/service"
@@ -51,19 +52,33 @@ func SetupRouter(cfg *config.Config, db *sql.DB, rdb *redis.Client, logger *slog
 	} else {
 		authCodeRepo = repository.NewMemoryAuthCodeRepository()
 	}
-	oauthService := service.NewOAuthService(clientRepo, authCodeRepo)
+
+	var refreshTokenRepo repository.RefreshTokenRepository
+	if db != nil {
+		refreshTokenRepo = repository.NewPostgresRefreshTokenRepository(db)
+	} else {
+		refreshTokenRepo = repository.NewMemoryRefreshTokenRepository()
+	}
+
+	jwtSigner, _ := crypto.NewJWTSigner(cfg.JWT, cfg.IssuerURL, logger)
+	oauthService := service.NewOAuthService(clientRepo, authCodeRepo, refreshTokenRepo, jwtSigner)
 
 	// Handlers
 	healthHandler := handler.NewHealthHandler(cfg)
 	oauthHandler := handler.NewOAuthHandler(oauthService)
+	jwksHandler := handler.NewJWKSHandler(jwtSigner)
 
 	// Health and Status Handlers
 	r.Get("/", healthHandler.Root)
 	r.Get("/healthz", healthHandler.Healthz)
 	r.Get("/readyz", healthHandler.Readyz)
 
-	// OAuth 2.0 / OIDC Authorize Endpoint (Standard & subrouted)
+	// OAuth 2.0 / OIDC Authorize & Token Endpoints (Standard & subrouted)
 	r.Get("/authorize", oauthHandler.Authorize)
+	r.Post("/token", oauthHandler.Token)
+
+	// RFC 7517 JSON Web Key Set (JWKS) Endpoint
+	r.Get("/.well-known/jwks.json", jwksHandler.JWKS)
 
 	// Subrouter structure for OAuth & OIDC endpoints
 	r.Route("/oauth", func(r chi.Router) {
@@ -71,15 +86,8 @@ func SetupRouter(cfg *config.Config, db *sql.DB, rdb *redis.Client, logger *slog
 			w.Write([]byte(`{"status":"oauth service ready"}`))
 		})
 		r.Get("/authorize", oauthHandler.Authorize)
-		// Future OAuth endpoints:
-		// r.Post("/token", oauthHandler.Token)
-		// r.Post("/revoke", oauthHandler.Revoke)
-	})
-
-	r.Route("/.well-known", func(r chi.Router) {
-		// Future OIDC endpoints:
-		// r.Get("/openid-configuration", oidcHandler.Discovery)
-		// r.Get("/jwks.json", jwksHandler.JWKS)
+		r.Post("/token", oauthHandler.Token)
+		r.Get("/.well-known/jwks.json", jwksHandler.JWKS)
 	})
 
 	return r
