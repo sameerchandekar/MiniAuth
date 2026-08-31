@@ -113,7 +113,11 @@ func (s *OAuthClientService) ExchangeCodeForToken(ctx context.Context, code, sta
 	}
 
 	// 2. Prepare /token form payload using verified code_verifier
-	tokenEndpoint := strings.TrimRight(s.cfg.AuthServerURL, "/") + "/token"
+	internalURL := s.cfg.AuthServerInternalURL
+	if internalURL == "" {
+		internalURL = s.cfg.AuthServerURL
+	}
+	tokenEndpoint := strings.TrimRight(internalURL, "/") + "/token"
 	form := url.Values{}
 	form.Set("grant_type", "authorization_code")
 	form.Set("code", strings.TrimSpace(code))

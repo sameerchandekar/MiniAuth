@@ -24,6 +24,7 @@ func main() {
 	logger.Info("initializing MiniAuth Client Service...",
 		slog.String("port", cfg.Address()),
 		slog.String("auth_server_url", cfg.AuthServerURL),
+		slog.String("auth_server_internal_url", cfg.AuthServerInternalURL),
 		slog.String("client_id", cfg.ClientID),
 		slog.String("redirect_uri", cfg.RedirectURI),
 	)

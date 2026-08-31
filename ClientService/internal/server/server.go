@@ -42,6 +42,7 @@ func (s *Server) Start() error {
 	s.logger.Info("starting client service",
 		slog.String("addr", s.httpServer.Addr),
 		slog.String("auth_server_url", s.cfg.AuthServerURL),
+		slog.String("auth_server_internal_url", s.cfg.AuthServerInternalURL),
 		slog.String("client_id", s.cfg.ClientID),
 		slog.String("redirect_uri", s.cfg.RedirectURI),
 	)

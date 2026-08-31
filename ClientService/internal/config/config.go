@@ -22,11 +22,12 @@ type Config struct {
 	IdleTimeout  time.Duration
 
 	// OAuth 2.0 Client Settings
-	AuthServerURL string // e.g. "http://localhost:8080"
-	ClientID      string // e.g. "client-id-001"
-	ClientSecret  string // e.g. "mock_client_secret"
-	RedirectURI   string // e.g. "http://localhost:9000/oauth/callback"
-	Scopes        string // e.g. "openid profile email"
+	AuthServerURL         string // e.g. "http://localhost:8080" (Public URL for browser redirects)
+	AuthServerInternalURL string // e.g. "http://authorization-server:8080" (Internal URL for backend container-to-container calls)
+	ClientID              string // e.g. "client-id-001"
+	ClientSecret          string // e.g. "mock_client_secret"
+	RedirectURI           string // e.g. "http://localhost:9000/oauth/callback"
+	Scopes                string // e.g. "openid profile email"
 
 	// Redis settings
 	Redis RedisConfig
@@ -69,6 +70,7 @@ func Load() *Config {
 
 	redisURL := getEnv("REDIS_URL", "")
 	redisAddr := getEnv("REDIS_ADDR", "localhost:6379")
+	authServerURL := getEnv("AUTH_SERVER_URL", "http://localhost:8080")
 
 	return &Config{
 		Host:         getEnv("HOST", "0.0.0.0"),
@@ -79,8 +81,9 @@ func Load() *Config {
 		WriteTimeout: getEnvAsDuration("WRITE_TIMEOUT", 15*time.Second),
 		IdleTimeout:  getEnvAsDuration("IDLE_TIMEOUT", 60*time.Second),
 
-		AuthServerURL: getEnv("AUTH_SERVER_URL", "http://localhost:8080"),
-		ClientID:      getEnv("CLIENT_ID", "client-id-001"),
+		AuthServerURL:         authServerURL,
+		AuthServerInternalURL: getEnv("AUTH_SERVER_INTERNAL_URL", authServerURL),
+		ClientID:              getEnv("CLIENT_ID", "client-id-001"),
 		ClientSecret:  getEnv("CLIENT_SECRET", ""),
 		RedirectURI:   getEnv("REDIRECT_URI", "http://localhost:9000/oauth/callback"),
 		Scopes:        getEnv("SCOPES", "openid profile email"),

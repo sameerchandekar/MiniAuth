@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 
 # Build static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/authserver ./AuthorizationServer/cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/resourceserver ./ResourceServer/cmd/server
 
 # Final stage
 FROM alpine:3.20
@@ -20,8 +20,8 @@ RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /app
 
-COPY --from=builder /app/authserver /app/authserver
+COPY --from=builder /app/resourceserver /app/resourceserver
 
-EXPOSE 8080
+EXPOSE 8082
 
-ENTRYPOINT ["/app/authserver"]
+ENTRYPOINT ["/app/resourceserver"]
