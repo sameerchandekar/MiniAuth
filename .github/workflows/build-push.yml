@@ -75,6 +75,28 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
 
+      - name: Debug OIDC claims
+        env:
+          TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import base64
+          import json
+
+          token = os.environ["TOKEN"]
+
+          payload = token.split(".")[1]
+          payload += "=" * (-len(payload) % 4)
+
+          claims = json.loads(
+              base64.urlsafe_b64decode(payload)
+          )
+
+          for key in ["iss", "aud", "sub", "repository", "ref"]:
+              print(f"{key}: {claims.get(key)}")
+          PY
+
       - name: Test OKE access
         run: |
           kubectl \
