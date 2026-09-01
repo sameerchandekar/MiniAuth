@@ -1,5 +1,6 @@
 services:
   authorization-server:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: AuthorizationServer/Dockerfile
@@ -11,6 +12,7 @@ services:
       - AuthorizationServer/.env
 
   user-service:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: UserService/Dockerfile
@@ -22,6 +24,7 @@ services:
       - UserService/.env
 
   resource-server:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: ResourceServer/Dockerfile
@@ -36,6 +39,7 @@ services:
       - ISSUER_URL=http://localhost:8080
 
   client-service:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: ClientService/Dockerfile

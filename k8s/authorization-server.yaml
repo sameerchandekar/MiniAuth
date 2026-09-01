@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: authorization-server
+  namespace: miniauth
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: authorization-server
+
+  template:
+    metadata:
+      labels:
+        app: authorization-server
+
+    spec:
+      imagePullSecrets:
+        - name: ocir-secret
+
+      containers:
+        - name: authorization-server
+          image: ocir.ap-mumbai-1.oci.oraclecloud.com/bmnhzxm9xanv/miniauth/authorization-server:v1
+          imagePullPolicy: Always
+
+          ports:
+            - containerPort: 8080
+
+          envFrom:
+            - secretRef:
+                name: authorization-server-env

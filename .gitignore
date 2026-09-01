@@ -33,3 +33,4 @@ keys/
 .vscode/
 *.swp
 *~
+/documentation/

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: miniauth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      imagePullSecrets:
+        - name: ocir-secret
+      containers:
+        - name: user-service
+          image: ocir.ap-mumbai-1.oci.oraclecloud.com/bmnhzxm9xanv/miniauth/user-service:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - secretRef:
+                name: user-service-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: miniauth
+spec:
+  selector:
+    app: user-service
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081
+  type: LoadBalancer

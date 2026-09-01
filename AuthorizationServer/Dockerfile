@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -10,17 +10,28 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build static binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/authserver ./AuthorizationServer/cmd/server
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 
-# Final stage
-FROM alpine:3.20
+# Build static binary with trimpath and stripped debug symbols
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags="-w -s" \
+    -o /app/authserver \
+    ./AuthorizationServer/cmd/server
 
-RUN apk --no-cache add ca-certificates tzdata
+# Final runtime stage
+FROM --platform=$TARGETPLATFORM alpine:3.20
+
+# Install CA certificates and create non-root user for Kubernetes security
+RUN apk --no-cache add ca-certificates tzdata \
+    && addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
 COPY --from=builder /app/authserver /app/authserver
+
+# Switch to non-root user
+USER appuser:appgroup
 
 EXPOSE 8080
 

@@ -10,8 +10,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8081",
-      "description": "Local Development Server"
+      "url": "/",
+      "description": "Current Server (Auto-detected from browser)"
     }
   ],
   "tags": [

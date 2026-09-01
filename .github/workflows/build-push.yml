@@ -1,0 +1,54 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: ocir.ap-mumbai-1.oci.oraclecloud.com
+  NAMESPACE: bmnhzxm9xanv
+  IMAGE_PREFIX: miniauth
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Login to OCIR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCI_USERNAME }}
+          password: ${{ secrets.OCI_AUTH_TOKEN }}
+
+      - name: Set image tag
+        id: vars
+        run: echo "TAG=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push authorization-server
+        run: |
+          IMAGE="$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/authorization-server:${{ steps.vars.outputs.TAG }}"
+          docker build -f AuthorizationServer/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Build and push user-service
+        run: |
+          IMAGE="$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/user-service:${{ steps.vars.outputs.TAG }}"
+          docker build -f UserService/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Build and push resource-server
+        run: |
+          IMAGE="$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/resource-server:${{ steps.vars.outputs.TAG }}"
+          docker build -f ResourceServer/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Build and push client-service
+        run: |
+          IMAGE="$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/client-service:${{ steps.vars.outputs.TAG }}"
+          docker build -f ClientService/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"

@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-service
+  namespace: miniauth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client-service
+  template:
+    metadata:
+      labels:
+        app: client-service
+    spec:
+      imagePullSecrets:
+        - name: ocir-secret
+      containers:
+        - name: client-service
+          image: ocir.ap-mumbai-1.oci.oraclecloud.com/bmnhzxm9xanv/miniauth/client-service:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - secretRef:
+                name: client-service-env
+          env:
+            - name: AUTH_SERVER_INTERNAL_URL
+              value: "http://authorization-server:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-service
+  namespace: miniauth
+spec:
+  selector:
+    app: client-service
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+  type: LoadBalancer

@@ -15,8 +15,8 @@ info:
     - **write scope**: Required for POST /api/v1/emails (denied if token only has read)
   version: 1.0.0
 servers:
-  - url: http://localhost:8082
-    description: Local Resource Server
+  - url: /
+    description: Current Server (Auto-detected from browser)
 
 paths:
   /api/v1/emails:

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource-server
+  namespace: miniauth
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resource-server
+  template:
+    metadata:
+      labels:
+        app: resource-server
+    spec:
+      imagePullSecrets:
+        - name: ocir-secret
+      containers:
+        - name: resource-server
+          image: ocir.ap-mumbai-1.oci.oraclecloud.com/bmnhzxm9xanv/miniauth/resource-server:v1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - secretRef:
+                name: resource-server-env
+          env:
+            - name: JWKS_URL
+              value: "http://authorization-server:8080/.well-known/jwks.json"
+            - name: ISSUER_URL
+              value: "http://authorization-server:8080"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resource-server
+  namespace: miniauth
+spec:
+  selector:
+    app: resource-server
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
+  type: ClusterIP
