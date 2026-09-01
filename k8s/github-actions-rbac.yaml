@@ -33,7 +33,7 @@ metadata:
 subjects:
   - kind: User
     apiGroup: rbac.authorization.k8s.io
-    name: actions-oidc:repo:sameerchandekar/MiniAuth:ref:refs/heads/main
+    name: "actions-oidc:repo:sameerchandekar@8946016/MiniAuth@1348233244:ref:refs/heads/main"
 
 roleRef:
   kind: Role

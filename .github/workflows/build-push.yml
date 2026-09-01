@@ -97,10 +97,67 @@ jobs:
               print(f"{key}: {claims.get(key)}")
           PY
 
-      - name: Test OKE access
+      - name: Deploy to OKE
+        env:
+          TOKEN: ${{ steps.oidc.outputs.token }}
+          TAG: ${{ steps.vars.outputs.TAG }}
         run: |
           kubectl \
             --server="https://80.225.251.98:6443" \
-            --token="${{ steps.oidc.outputs.token }}" \
+            --token="$TOKEN" \
             --insecure-skip-tls-verify \
-            get pods -n miniauth
+            set image deployment/authorization-server \
+            authorization-server=$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/authorization-server:$TAG \
+            -n miniauth
+
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            set image deployment/user-service \
+            user-service=$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/user-service:$TAG \
+            -n miniauth
+
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            set image deployment/resource-server \
+            resource-server=$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/resource-server:$TAG \
+            -n miniauth
+
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            set image deployment/client-service \
+            client-service=$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/client-service:$TAG \
+            -n miniauth
+
+      - name: Wait for rollout
+        env:
+          TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            rollout status deployment/authorization-server -n miniauth
+
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            rollout status deployment/user-service -n miniauth
+
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            rollout status deployment/resource-server -n miniauth
+
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="$TOKEN" \
+            --insecure-skip-tls-verify \
+            rollout status deployment/client-service -n miniauth
