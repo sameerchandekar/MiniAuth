@@ -1,0 +1,41 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: github-actions-deployer
+  namespace: miniauth
+rules:
+  # Allow GitHub Actions to inspect pods
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Allow GitHub Actions to deploy/update applications
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - watch
+      - patch
+      - update
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: github-actions-deployer-binding
+  namespace: miniauth
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: actions-oidc:repo:sameerchandekar/MiniAuth:ref:refs/heads/main
+
+roleRef:
+  kind: Role
+  name: github-actions-deployer
+  apiGroup: rbac.authorization.k8s.io

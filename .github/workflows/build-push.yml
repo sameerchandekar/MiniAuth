@@ -52,3 +52,29 @@ jobs:
           IMAGE="$REGISTRY/$NAMESPACE/$IMAGE_PREFIX/client-service:${{ steps.vars.outputs.TAG }}"
           docker build -f ClientService/Dockerfile -t "$IMAGE" .
           docker push "$IMAGE"
+
+      - name: Get GitHub OIDC token
+        id: oidc
+        run: |
+          AUDIENCE="oke-kubernetes-cluster"
+
+          TOKEN=$(curl -s \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE" \
+            | jq -r '.value')
+
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+            echo "Failed to obtain GitHub OIDC token"
+            exit 1
+          fi
+
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Test OKE access
+        run: |
+          kubectl \
+            --server="https://80.225.251.98:6443" \
+            --token="${{ steps.oidc.outputs.token }}" \
+            --insecure-skip-tls-verify \
+            get pods -n miniauth
